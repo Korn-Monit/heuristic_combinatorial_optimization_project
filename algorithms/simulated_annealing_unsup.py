@@ -1,46 +1,46 @@
+# simulated_annealing_unsup.py
+
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import mutual_info_score
 from sklearn.preprocessing import KBinsDiscretizer
-class ParticleSwarmUnsupervisedFeatureSelector(BaseEstimator, TransformerMixin):
+
+class SimulatedAnnealingUnsupervisedFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(
         self,
-        n_particles=20,
-        n_iterations=10,
-        w=0.729,
-        c1=1.49445,
-        c2=1.49445,
+        initial_temperature=1000,
+        cooling_rate=0.95,
+        n_iterations=100,
         alpha=0.5,
         beta=0.5,
         gamma=0.01,
         random_state=None,
     ):
-        self.n_particles = n_particles
+        self.initial_temperature = initial_temperature
+        self.cooling_rate = cooling_rate
         self.n_iterations = n_iterations
-        self.w = w
-        self.c1 = c1
-        self.c2 = c2
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
         self.random_state = random_state
-        self.selected_indices_ = None  
+        self.selected_indices_ = None 
 
     def fit(self, X, y=None):
         np.random.seed(self.random_state)
         X = X.values if hasattr(X, 'values') else X  
 
         n_features = X.shape[1]
+        temperature = self.initial_temperature
 
-        def fitness(position):
-            selected_features = X[:, position == 1]
+        def fitness(chromosome):
+            selected_features = X[:, chromosome == 1]
             n_s = selected_features.shape[1]  
 
             if n_s == 0:
                 return -np.inf
 
-            std_devs = np.std(selected_features, axis=0)
-            non_constant_indices = np.where(std_devs > 0)[0]
+            variances = np.var(selected_features, axis=0)
+            non_constant_indices = np.where(variances > 0)[0]
             selected_features = selected_features[:, non_constant_indices]
             n_s = selected_features.shape[1]
             if n_s == 0:
@@ -66,57 +66,48 @@ class ParticleSwarmUnsupervisedFeatureSelector(BaseEstimator, TransformerMixin):
             ]
             mi_score_avg = np.mean(mi_scores) if mi_scores else 0
 
-            variance_score = np.mean(np.var(selected_features, axis=0))
+            variance_score = np.mean(variances[non_constant_indices])
 
             fitness_score = self.alpha * variance_score - self.beta * mi_score_avg - self.gamma * n_s
             return fitness_score
 
-        positions = np.random.randint(2, size=(self.n_particles, n_features))  
-        velocities = np.random.uniform(low=-1, high=1, size=(self.n_particles, n_features))
+        current_solution = np.random.randint(2, size=n_features)
+        if not current_solution.any():
+            current_solution[np.random.randint(0, n_features)] = 1
+        current_fitness = fitness(current_solution)
 
-        for position in positions:
-            if not position.any():
-                position[np.random.randint(0, n_features)] = 1
-
-        pbest_positions = positions.copy()
-        pbest_fitnesses = np.array([fitness(pos) for pos in positions])
-
-        gbest_index = np.argmax(pbest_fitnesses)
-        gbest_position = pbest_positions[gbest_index].copy()
-        gbest_fitness = pbest_fitnesses[gbest_index]
+        best_solution = current_solution.copy()
+        best_fitness = current_fitness
 
         for iteration in range(self.n_iterations):
-            for i in range(self.n_particles):
-                r1 = np.random.rand(n_features)
-                r2 = np.random.rand(n_features)
-                velocities[i] = (
-                    self.w * velocities[i]
-                    + self.c1 * r1 * (pbest_positions[i] - positions[i])
-                    + self.c2 * r2 * (gbest_position - positions[i])
-                )
+            neighbor_solution = current_solution.copy()
+            flip_index = np.random.randint(0, n_features)
+            neighbor_solution[flip_index] = 1 - neighbor_solution[flip_index]
+            if not neighbor_solution.any():
+                neighbor_solution[np.random.randint(0, n_features)] = 1
 
-                sigmoid = 1 / (1 + np.exp(-velocities[i]))
+            neighbor_fitness = fitness(neighbor_solution)
 
-                rand_vals = np.random.rand(n_features)
-                positions[i] = np.where(rand_vals < sigmoid, 1, 0)
+            delta_fitness = neighbor_fitness - current_fitness
+            if delta_fitness > 0:
+                acceptance_probability = 1.0
+            else:
+                acceptance_probability = np.exp(delta_fitness / temperature)
 
-                if not positions[i].any():
-                    positions[i][np.random.randint(0, n_features)] = 1
+            if acceptance_probability > np.random.rand():
+                current_solution = neighbor_solution.copy()
+                current_fitness = neighbor_fitness
 
-                fitness_value = fitness(positions[i])
+                if current_fitness > best_fitness:
+                    best_solution = current_solution.copy()
+                    best_fitness = current_fitness
 
-                if fitness_value > pbest_fitnesses[i]:
-                    pbest_positions[i] = positions[i].copy()
-                    pbest_fitnesses[i] = fitness_value
+            temperature *= self.cooling_rate
 
-            gbest_index = np.argmax(pbest_fitnesses)
-            if pbest_fitnesses[gbest_index] > gbest_fitness:
-                gbest_position = pbest_positions[gbest_index].copy()
-                gbest_fitness = pbest_fitnesses[gbest_index]
+            print(f"Iteration {iteration + 1}/{self.n_iterations} - Current Fitness: {current_fitness:.4f}, Best Fitness: {best_fitness:.4f}, Temperature: {temperature:.4f}")
 
-            print(f"Iteration {iteration + 1} - Best Fitness: {gbest_fitness}")
+        self.selected_indices_ = np.where(best_solution == 1)[0]
 
-        self.selected_indices_ = np.where(gbest_position == 1)[0]
         print("Selected Feature Indices:", self.selected_indices_)
         return self
 

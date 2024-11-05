@@ -18,17 +18,16 @@ class ParticleSwarmSupervisedFeatureSelector(BaseEstimator, TransformerMixin):
         self.c2 = c2
         self.w = w
         self.random_state = random_state
-        self.selected_indices_ = None  # To store selected feature indices
+        self.selected_indices_ = None  
 
     def fit(self, X, y):
         np.random.seed(self.random_state)
         
-        X = X.values if hasattr(X, 'values') else X  # Ensure NumPy array
+        X = X.values if hasattr(X, 'values') else X  
         y = y.values if hasattr(y, 'values') else y
         
         n_features = X.shape[1]
         
-        # List of classifiers to evaluate
         classifiers = [
             LogisticRegression(max_iter=1000, random_state=self.random_state),
             SVC(probability=True, random_state=self.random_state),
@@ -36,11 +35,10 @@ class ParticleSwarmSupervisedFeatureSelector(BaseEstimator, TransformerMixin):
             RandomForestClassifier(n_estimators=100, random_state=self.random_state)
         ]
         
-        # Fitness function to evaluate particle positions
         def fitness(position):
             selected_features = X[:, position > 0.5]
             if selected_features.shape[1] == 0:
-                return 0  # Avoid empty feature selection
+                return 0  
             
             auc_scores = []
             for clf in classifiers:
@@ -52,17 +50,14 @@ class ParticleSwarmSupervisedFeatureSelector(BaseEstimator, TransformerMixin):
                     auc_scores.append(0)
             return np.mean(auc_scores)
         
-        # Initialize particles
         positions = np.random.rand(self.n_particles, n_features)
         velocities = np.random.rand(self.n_particles, n_features) * 0.1
 
-        # Personal and global bests
         personal_best_positions = np.copy(positions)
         personal_best_scores = np.array([fitness(pos) for pos in positions])
         global_best_position = personal_best_positions[np.argmax(personal_best_scores)]
         global_best_score = np.max(personal_best_scores)
         
-        # PSO main loop
         for iteration in range(self.n_iterations):
             for i in range(self.n_particles):
                 r1, r2 = np.random.rand(n_features), np.random.rand(n_features)

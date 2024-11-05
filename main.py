@@ -1,4 +1,3 @@
-# main.py
 import json
 import os
 import time
@@ -13,17 +12,15 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-
-# Import algorithm modules
 from algorithms.genetic_algorithm_sup import GeneticAlgorithmSupervisedFeatureSelector
 from algorithms.particle_swarm_supervised import ParticleSwarmSupervisedFeatureSelector
 from algorithms.genetic_algorithm_unsup import GeneticAlgorithmUnsupervisedFeatureSelector
 from algorithms.particle_swarm_unsup import ParticleSwarmUnsupervisedFeatureSelector
+from algorithms.simulated_annealing_sup import SimulatedAnnealingSupervisedFeatureSelector
+from algorithms.simulated_annealing_unsup import SimulatedAnnealingUnsupervisedFeatureSelector
 
 def load_data(data_path):
-    # Load your data
     df = pd.read_csv(data_path)
-    # Preprocessing
     labelEncoder = LabelEncoder()
     df['class_encoded'] = labelEncoder.fit_transform(df['Class'])
     df.drop(['Class'], axis=1, inplace=True)
@@ -32,24 +29,18 @@ def load_data(data_path):
     return train_test_split(X, y, test_size=0.3, random_state=42)
 
 def main():
-    # Specify paths directly in the script
-    data_path = 'dataset.csv'  # Update this to your dataset path
-    output_path = 'result'  # Update this if you want to change the output directory
-
+    data_path = 'dataset.csv'  
+    output_path = 'result'  
     os.makedirs(output_path, exist_ok=True)
-
-    # Load data
     X_train, X_test, y_train, y_test = load_data(data_path)
-
-    # Define the algorithms to run
     algorithms = {
         'supervised_genetic_algorithm': GeneticAlgorithmSupervisedFeatureSelector(),
         'supervised_particle_swarm': ParticleSwarmSupervisedFeatureSelector(),
         'unsupervised_genetic_algorithm': GeneticAlgorithmUnsupervisedFeatureSelector(),
-        'unsupervised_particle_swarm': ParticleSwarmUnsupervisedFeatureSelector()
+        'unsupervised_particle_swarm': ParticleSwarmUnsupervisedFeatureSelector(),
+        'supervised_simulated_annealing': SimulatedAnnealingSupervisedFeatureSelector(),
+        'unsupervised_simulated_annealing': SimulatedAnnealingUnsupervisedFeatureSelector()
     }
-
-    # List of classifiers to evaluate
     classifiers = [
         LogisticRegression(max_iter=5000),
         SVC(probability=True),
@@ -57,11 +48,9 @@ def main():
         RandomForestClassifier(n_estimators=100)
     ]
 
-    # Iterate over each algorithm
     for algorithm_name, selector in algorithms.items():
         print(f"\nRunning feature selection using {algorithm_name}...")
 
-        # Start timing feature selection
         start_fs_time = time.time()
         selector.fit(X_train, y_train)
         end_fs_time = time.time()
@@ -70,7 +59,6 @@ def main():
         print(f"Feature selection completed in {feature_selection_time:.4f} seconds.")
         print(f"Selected features indices: {selector.selected_indices_}")
 
-        # Transform the data using the selected features
         X_train_selected = selector.transform(X_train)
         X_test_selected = selector.transform(X_test)
 
@@ -79,20 +67,16 @@ def main():
 
         print("\nStarting evaluation of classifiers...")
         for clf in classifiers:
-            # Clone the classifier to ensure a fresh model each time
             clf = clone(clf)
 
-            # Build pipeline with the selected classifier
             pipeline = Pipeline([
                 ('scaler', StandardScaler()),
                 ('classification', clf)
             ])
 
-            # Time the training and evaluation
             print(f"\nEvaluating classifier: {clf.__class__.__name__}")
             start_time = time.time()
 
-            # Perform cross-validation
             cv_scores = cross_val_score(
                 pipeline,
                 X_train_selected,
