@@ -30,4 +30,4 @@ We use gene expression data obtained from the **Gene Expression Omnibus (GEO)**.
 
 ---
 
-## **Project Structure**
+<!-- ## **Project Structure** -->
