@@ -1,11 +1,33 @@
-# Supervised setting
-## In supervised setting, the algorithm generates many of subset of features. Among those subset of features generated my the algorihtm is selected only one, the best one.
-## How do we know which one is the best? At this stage, the fitness function come, k fold cross validation is implemented in this project with a set of classifiers such as Random Forest, Decision Tree, Support Vector Classifier, and Logistic Regression.
-## Since this project is implemented using 5 fold cross validation, so each classifier is computed five times. Later, we got the mean of each classifier
-## The fitness function will take mean of each classifier to find the mean of each classifier.
-### Example, mean of Random Forest + mean of Decision Tree + mean of SVC + mean of Logistic Regression/4
-## The subset feature which has the highest score(AUC) is selected
-## Lastly, AUC score is calculated once again to ensure robustness
+# **Feature Selection in Machine Learning using Metaheuristics**
 
-# Unsupervised setting
+## **Project Overview**
+This project tackles the **Feature Selection Problem**, a **combinatorial optimization challenge**, using **metaheuristics** to select the most informative features from **genomic datasets**. Due to the high dimensionality of genomic data, feature selection is critical for improving **model accuracy, computational efficiency, and interpretability**.
 
+Two optimization settings were explored:
+
+1. **Unsupervised Setting** - Feature selection based on **mutual information**, minimizing redundancy without using labels.
+2. **Supervised Setting** - Feature selection based on **AUC score**, directly assessing predictive power with classifiers.
+
+The project compares the efficiency of three metaheuristic algorithms: **Genetic Algorithm (GA), Particle Swarm Optimization (PSO), and Simulated Annealing (SA)**.
+
+---
+
+## **Dataset**
+We use gene expression data obtained from the **Gene Expression Omnibus (GEO)**. The dataset consists of:
+
+- **CSV Format**
+- The **first column** represents class labels.
+- The **remaining columns** contain gene expression values.
+
+---
+
+## **Objectives**
+- Implement **three metaheuristic algorithms** for feature selection.
+- Compare performance in **supervised and unsupervised settings**.
+- Evaluate **AUC scores** using classifiers (**Decision Tree, Random Forest, SVC, Logistic Regression**).
+- Measure and compare the **execution time** of different approaches.
+- Provide a **script** that automates feature selection and evaluation.
+
+---
+
+## **Project Structure**
